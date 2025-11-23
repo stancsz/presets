@@ -215,7 +215,7 @@ private:
 };
 
 //==============================================================================
-YamlPresetPluginAudioProcessorEditor::YamlPresetPluginAudioProcessorEditor (YamlPresetPluginAudioProcessor& p)
+PresetEngineAudioProcessorEditor::PresetEngineAudioProcessorEditor (PresetEngineAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
     // Apply custom look and feel
@@ -224,7 +224,7 @@ YamlPresetPluginAudioProcessorEditor::YamlPresetPluginAudioProcessorEditor (Yaml
     setSize (800, 600);
 
     // Header
-    titleLabel.setText("Yaml Preset Plugin", juce::dontSendNotification);
+    titleLabel.setText("Preset Engine", juce::dontSendNotification);
     titleLabel.setFont(juce::Font(20.0f, juce::Font::bold));
     addAndMakeVisible(titleLabel);
 
@@ -237,19 +237,119 @@ YamlPresetPluginAudioProcessorEditor::YamlPresetPluginAudioProcessorEditor (Yaml
     viewport.setViewedComponent(container.get(), false);
 
     // Code Editor
+    languageBox.addItem("YAML", 1);
+    languageBox.addItem("JSON", 2);
+    languageBox.addItem("XML", 3);
+    languageBox.addItem("Python", 4);
+    languageBox.addItem("Go", 5);
+    languageBox.setSelectedId(1); // Default YAML
+    addAndMakeVisible(languageBox);
+
+    exampleButton.setButtonText("Load Example");
+    exampleButton.onClick = [this] {
+        int id = languageBox.getSelectedId();
+        juce::String example = "";
+        if (id == 1) // YAML - Direct Plugin Usage
+        {
+            example = "# Paste this directly into the plugin\n"
+                     "- type: Gain\n"
+                     "  gain_db:\n"
+                     "    value: -6.0\n"
+                     "    ui: Slider\n"
+                     "    style: Rotary\n"
+                     "\n"
+                     "- type: Filter\n"
+                     "  mode: LowPass\n"
+                     "  frequency: 1000.0";
+        }
+        else if (id == 2) // JSON - Direct Plugin Usage
+        {
+            example = "[\n"
+                     "  {\n"
+                     "    \"type\": \"Gain\",\n"
+                     "    \"gain_db\": {\n"
+                     "      \"value\": -6.0,\n"
+                     "      \"ui\": \"Slider\"\n"
+                     "    }\n"
+                     "  },\n"
+                     "  {\n"
+                     "    \"type\": \"Filter\",\n"
+                     "    \"mode\": \"LowPass\",\n"
+                     "    \"frequency\": 1000.0\n"
+                     "  }\n"
+                     "]";
+        }
+        else if (id == 3) // XML - Direct Plugin Usage
+        {
+            example = "<EffectChain>\n"
+                     "  <Effect type=\"Gain\">\n"
+                     "    <gain_db value=\"-6.0\" ui=\"Slider\"/>\n"
+                     "  </Effect>\n"
+                     "  <Effect type=\"Filter\" mode=\"LowPass\" frequency=\"1000.0\"/>\n"
+                     "</EffectChain>";
+        }
+        else if (id == 4) // Python - SDK Generator (NOT for direct paste)
+        {
+            example = "# SDK USAGE - Run this Python script to GENERATE a preset file\n"
+                     "# Then load the generated .yaml/.json file into the plugin\n"
+                     "#\n"
+                     "# See: example/python_generator.py\n"
+                     "\n"
+                     "from preset_engine import Chain, Gain, Filter\n"
+                     "\n"
+                     "chain = Chain()\n"
+                     "chain.add(Gain(db=-6.0, ui=True))\n"
+                     "chain.add(Filter(mode=\"LowPass\", freq=1000.0))\n"
+                     "\n"
+                     "# Output YAML to paste into plugin:\n"
+                     "print(chain.to_yaml())";
+        }
+        else if (id == 5) // Go - SDK Generator (NOT for direct paste)
+        {
+            example = "// SDK USAGE - Compile and run this Go program to GENERATE a preset\n"
+                     "// Then load the generated .json file into the plugin\n"
+                     "//\n"
+                     "// See: example/go_generator.go\n"
+                     "\n"
+                     "package main\n"
+                     "\n"
+                     "import \"encoding/json\"\n"
+                     "\n"
+                     "func main() {\n"
+                     "    chain := []Effect{\n"
+                     "        {\"type\": \"Gain\", \"gain_db\": -6.0},\n"
+                     "        {\"type\": \"Filter\", \"mode\": \"LowPass\"},\n"
+                     "    }\n"
+                     "    b, _ := json.MarshalIndent(chain, \"\", \"  \")\n"
+                     "    fmt.Println(string(b))\n"
+                     "}";
+        }
+        codeEditor.setText(example);
+    };
+    addAndMakeVisible(exampleButton);
+
     codeEditor.setMultiLine(true);
     codeEditor.setReturnKeyStartsNewLine(true);
     codeEditor.setTabKeyUsedAsCharacter(true);
     codeEditor.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 14.0f, juce::Font::plain));
-    codeEditor.setText(audioProcessor.getCurrentConfig());
+    
+    // Only set text if empty (first run)
+    if (audioProcessor.getCurrentConfig().isEmpty())
+        exampleButton.triggerClick();
+    else
+        codeEditor.setText(audioProcessor.getCurrentConfig());
+        
     addAndMakeVisible(codeEditor);
 
     // Status & Button
     statusLabel.setText("Ready.", juce::dontSendNotification);
     addAndMakeVisible(statusLabel);
 
-    applyButton.setButtonText("Apply & Rebuild UI");
+    applyButton.setButtonText("Apply");
     applyButton.onClick = [this] {
+        // Pass the selected language ID as a hint? 
+        // For now, we'll let the processor auto-detect, but we could prefix the code.
+        // Actually, let's just pass the text. The parser will handle it.
         auto result = audioProcessor.loadConfig(codeEditor.getText());
         if (result.wasOk())
         {
@@ -269,13 +369,13 @@ YamlPresetPluginAudioProcessorEditor::YamlPresetPluginAudioProcessorEditor (Yaml
     rebuildUi();
 }
 
-YamlPresetPluginAudioProcessorEditor::~YamlPresetPluginAudioProcessorEditor()
+PresetEngineAudioProcessorEditor::~PresetEngineAudioProcessorEditor()
 {
     setLookAndFeel(nullptr);
     viewport.setViewedComponent(nullptr, false);
 }
 
-void YamlPresetPluginAudioProcessorEditor::rebuildUi()
+void PresetEngineAudioProcessorEditor::rebuildUi()
 {
     container->removeAllChildren();
     effectComponents.clear();
@@ -299,12 +399,12 @@ void YamlPresetPluginAudioProcessorEditor::rebuildUi()
     container->setSize(760, std::max(300, y));
 }
 
-void YamlPresetPluginAudioProcessorEditor::paint (juce::Graphics& g)
+void PresetEngineAudioProcessorEditor::paint (juce::Graphics& g)
 {
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 }
 
-void YamlPresetPluginAudioProcessorEditor::resized()
+void PresetEngineAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds().reduced(10);
 
@@ -312,12 +412,22 @@ void YamlPresetPluginAudioProcessorEditor::resized()
     titleLabel.setBounds(area.removeFromTop(30));
 
     // Footer
-    auto footer = area.removeFromBottom(150); // Code editor area
+    auto footer = area.removeFromBottom(180); // Increased for language selector
     
+    // Top row: Language selector + Example button
+    auto topRow = footer.removeFromTop(30);
+    languageBox.setBounds(topRow.removeFromLeft(120));
+    topRow.removeFromLeft(5);
+    exampleButton.setBounds(topRow.removeFromLeft(120));
+    
+    footer.removeFromTop(5);
+    
+    // Second row: Apply button + Status
     auto buttonArea = footer.removeFromTop(30);
     applyButton.setBounds(buttonArea.removeFromRight(150));
     statusLabel.setBounds(buttonArea);
 
+    footer.removeFromTop(5);
     codeEditor.setBounds(footer);
 
     // Main UI

@@ -1,0 +1,37 @@
+# This is a VALID preset file for PresetEngine
+# Copy and paste this YAML directly into the plugin
+
+- type: Gain
+  info:
+    value: "Input Stage"
+    ui: Label
+  gain_db:
+    value: -3.0
+    ui: Slider
+    style: Rotary
+    min: -60.0
+    max: 12.0
+
+- type: Compressor
+  threshold:
+    value: -12.0
+    ui: Slider
+    style: Rotary
+    min: -40.0
+    max: 0.0
+  ratio:
+    value: 4.0
+    ui: Slider
+    min: 1.0
+    max: 20.0
+  attack: 5.0
+  release: 100.0
+
+- type: Reverb
+  room_size: 0.7
+  damping: 0.3
+  wet: 0.25
+
+- type: Limiter
+  threshold: -0.3
+  release: 50.0

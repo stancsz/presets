@@ -15,6 +15,6 @@ cd ..
 if not exist release mkdir release
 
 echo Zipping VST3...
-powershell Compress-Archive -Path "build\YamlPresetPlugin_artefacts\Release\VST3\YamlPresetPlugin.vst3" -DestinationPath "release\presets_windows.zip" -Force
+powershell Compress-Archive -Path "build\PresetEngine_artefacts\Release\VST3\PresetEngine.vst3" -DestinationPath "release\presets_windows.zip" -Force
 
 echo Done. Artifact at release\presets_windows.zip

@@ -30,9 +30,17 @@ public:
 
     void configure(const juce::ValueTree& config) override
     {
-        if (config.hasProperty("type")) type = config.getProperty("type").toString().toStdString();
-        if (config.hasProperty("frequency")) frequency = config.getProperty("frequency");
-        if (config.hasProperty("q")) q = config.getProperty("q");
+        // Support both "type" (legacy/YAML) and "mode" (JSON friendly) for filter type
+        if (config.hasProperty("mode")) 
+            type = config.getProperty("mode").toString().toStdString();
+        else if (config.hasProperty("type") && config.getProperty("type").toString() != "Filter") 
+            type = config.getProperty("type").toString().toStdString();
+
+        if (config.hasProperty("frequency") || config.getChildWithName("frequency").isValid()) 
+            frequency = getParameterValue(config, "frequency", 1000.0f);
+            
+        if (config.hasProperty("q") || config.getChildWithName("q").isValid()) 
+            q = getParameterValue(config, "q", 0.707f);
 
         updateCoefficients();
     }

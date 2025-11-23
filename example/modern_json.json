@@ -1,18 +1,18 @@
 [
-  {
-    "type": "Gain",
-    "gain_db": {
-      "value": -3.0,
-      "ui": "Slider",
-      "style": "Linear",
-      "min": -20.0,
-      "max": 20.0
+    {
+        "type": "Gain",
+        "gain_db": {
+            "value": -3.0,
+            "ui": "Slider",
+            "style": "Linear",
+            "min": -20.0,
+            "max": 20.0
+        }
+    },
+    {
+        "type": "Filter",
+        "mode": "BandPass",
+        "frequency": 1000.0,
+        "q": 5.0
     }
-  },
-  {
-    "type": "Filter",
-    "type": "BandPass",
-    "frequency": 1000.0,
-    "q": 5.0
-  }
 ]

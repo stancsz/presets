@@ -1,14 +1,16 @@
-# YamlPresetPlugin
+# PresetEngine
 
 **A Declarative, Text-Driven Modular Multi-Effect Plugin.**
 
-YamlPresetPlugin is a VST3 and Standalone audio plugin that allows you to define complex audio processing chains and custom user interfaces entirely through text configuration. It bridges the gap between DSP coding and rapid prototyping.
+PresetEngine is a VST3 and Standalone audio plugin that allows you to define complex audio processing chains and custom user interfaces entirely through text configuration. It bridges the gap between DSP coding and rapid prototyping.
 
 ## What is it?
 
-Think of it as a "browser" for audio processing chains. Instead of hardcoding a plugin with a fixed set of features, YamlPresetPlugin reads a configuration file (YAML, JSON, or XML) and dynamically constructs:
+Think of it as a "browser" for audio processing chains. Instead of hardcoding a plugin with a fixed set of features, PresetEngine reads a configuration file (YAML, JSON, or XML) and dynamically constructs:
 1.  **The DSP Chain**: Instantiating and connecting audio effects in the specified order.
 2.  **The User Interface**: Generating knobs, sliders, dropdowns, and meters to control those effects.
+
+Technically, PresetEngine's configurable architecture makes it possible to recreate the vast majority of common commercial plugins (covering roughly 90% of typical use-cases) as well as support advanced, custom plugin behaviors — all defined via text configuration or programmatically.
 
 ## Key Features
 
@@ -16,6 +18,7 @@ Think of it as a "browser" for audio processing chains. Instead of hardcoding a 
 *   **🎨 Dynamic UI Generation**: The plugin automatically builds a professional GUI based on your config. You define the controls (`ui: Slider`, `style: Rotary`), and the engine handles the layout.
 *   **⚡ Hot-Reloading**: Edit the configuration directly inside the plugin window. Click "Apply" to instantly rebuild the DSP chain and UI without restarting your DAW.
 *   **🔌 Format Agnostic**: Native support for **YAML**, **JSON**, and **JUCE XML**.
+*   **🐍 Python & Go SDKs**: Generate complex presets programmatically using our provided SDKs. PresetEngine supports programmable languages such as Python and Go, enabling programmatic preset generation and tight integrations with external tooling.
 *   **🎛️ Comprehensive DSP Library**: Built on the robust JUCE DSP module.
 
 ## Supported Effects

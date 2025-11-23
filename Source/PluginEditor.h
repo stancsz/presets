@@ -33,6 +33,8 @@ private:
     juce::OwnedArray<juce::Component> effectComponents;
 
     // Code Editor
+    juce::ComboBox  languageBox;
+    juce::TextButton exampleButton;
     juce::TextEditor codeEditor;
     juce::TextButton applyButton;
     juce::Label     statusLabel;

@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.5)
 
-project(YamlPresetPlugin VERSION 0.0.1)
+project(PresetEngine VERSION 0.0.1)
 
 include(FetchContent)
 
@@ -23,7 +23,7 @@ FetchContent_MakeAvailable(JUCE yaml-cpp)
 # --- Plugin ---
 # Note: Building this requires X11 development headers (e.g. libxrandr-dev, libxinerama-dev, etc.) on Linux.
 
-juce_add_plugin(YamlPresetPlugin
+juce_add_plugin(PresetEngine
     COMPANY_NAME "MyCompany"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
@@ -33,10 +33,10 @@ juce_add_plugin(YamlPresetPlugin
     PLUGIN_MANUFACTURER_CODE Juce
     PLUGIN_CODE Yaml
     FORMATS VST3 Standalone
-    PRODUCT_NAME "YamlPresetPlugin"
+    PRODUCT_NAME "PresetEngine"
 )
 
-target_sources(YamlPresetPlugin
+target_sources(PresetEngine
     PRIVATE
         Source/PluginProcessor.cpp
         Source/PluginProcessor.h
@@ -59,12 +59,12 @@ target_sources(YamlPresetPlugin
         Source/Effects/PannerEffect.h
 )
 
-target_compile_definitions(YamlPresetPlugin PUBLIC
+target_compile_definitions(PresetEngine PUBLIC
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
 )
 
-target_link_libraries(YamlPresetPlugin
+target_link_libraries(PresetEngine
     PRIVATE
         juce::juce_audio_utils
         juce::juce_audio_processors
@@ -78,6 +78,6 @@ target_link_libraries(YamlPresetPlugin
         yaml-cpp
 )
 
-target_compile_features(YamlPresetPlugin PUBLIC cxx_std_17)
+target_compile_features(PresetEngine PUBLIC cxx_std_17)
 
-juce_generate_juce_header(YamlPresetPlugin)
+juce_generate_juce_header(PresetEngine)
