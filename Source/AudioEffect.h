@@ -2,6 +2,21 @@
 #include <juce_dsp/juce_dsp.h>
 #include <juce_data_structures/juce_data_structures.h>
 #include <yaml-cpp/yaml.h>
+#include <functional>
+#include <string>
+#include <vector>
+
+/**
+ * Structure defining a controllable parameter.
+ */
+struct EffectParameter
+{
+    std::string name;
+    float value;
+    float min;
+    float max;
+    std::function<void(float)> setter;
+};
 
 /**
  * Base class for all modular effects.
@@ -20,4 +35,10 @@ public:
 
     // Configure from JUCE ValueTree (optional, for XML support)
     virtual void configure(const juce::ValueTree& config) = 0;
+
+    // Return a list of parameters for the GUI
+    virtual std::vector<EffectParameter> getParameters() = 0;
+
+    // Return the name/type of the effect
+    virtual std::string getName() const = 0;
 };

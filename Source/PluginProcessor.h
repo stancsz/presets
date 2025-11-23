@@ -46,6 +46,8 @@ public:
     juce::Result loadConfig(const juce::String& config);
     juce::String getCurrentConfig() const { return currentConfigCode; }
 
+    EffectChain& getChain() { return effectChain; }
+
 private:
     juce::AudioProcessorValueTreeState apvts;
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();

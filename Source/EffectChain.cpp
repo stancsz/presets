@@ -3,6 +3,11 @@
 #include "Effects/FilterEffect.h"
 #include "Effects/CompressorEffect.h"
 #include "Effects/LimiterEffect.h"
+#include "Effects/DelayEffect.h"
+#include "Effects/DriveEffect.h"
+#include "Effects/PhaserEffect.h"
+#include "Effects/ChorusEffect.h"
+#include "Effects/ReverbEffect.h"
 #include <yaml-cpp/yaml.h>
 
 EffectChain::EffectChain()
@@ -19,11 +24,6 @@ void EffectChain::prepare(const juce::dsp::ProcessSpec& spec)
     juce::ScopedLock sl(updateLock);
     currentSpec = spec;
 
-    // We can iterate the active list safely here because prepare is usually called on the main thread
-    // or before processing starts. However, strictly speaking, prepare might be called by the host
-    // when processing is suspended.
-
-    // For safety, we access the current list
     auto currentList = std::atomic_load(&activeEffects);
     if (currentList)
     {
@@ -36,7 +36,6 @@ void EffectChain::prepare(const juce::dsp::ProcessSpec& spec)
 
 void EffectChain::process(juce::AudioBuffer<float>& buffer)
 {
-    // Thread-safe access to the shared pointer
     auto currentList = std::atomic_load(&activeEffects);
 
     if (currentList)
@@ -70,6 +69,11 @@ std::unique_ptr<AudioEffect> EffectChain::createEffect(const std::string& type)
     if (type == "Filter" || type == "EQ") return std::make_unique<FilterEffect>();
     if (type == "Compressor") return std::make_unique<CompressorEffect>();
     if (type == "Limiter") return std::make_unique<LimiterEffect>();
+    if (type == "Delay") return std::make_unique<DelayEffect>();
+    if (type == "Drive" || type == "Distortion") return std::make_unique<DriveEffect>();
+    if (type == "Phaser") return std::make_unique<PhaserEffect>();
+    if (type == "Chorus") return std::make_unique<ChorusEffect>();
+    if (type == "Reverb") return std::make_unique<ReverbEffect>();
     return nullptr;
 }
 
@@ -104,8 +108,11 @@ juce::Result EffectChain::loadFromYaml(const juce::String& yamlString)
             }
         }
 
-        // Atomically swap
         std::atomic_store(&activeEffects, newEffects);
+
+        // Notify listeners on message thread if possible, but we are here likely on message thread
+        listeners.call(&Listener::chainChanged);
+
         return juce::Result::ok();
     }
     catch (const YAML::Exception& e)
@@ -151,10 +158,25 @@ juce::Result EffectChain::loadFromXml(const juce::String& xmlString)
              }
         }
 
-        // Atomically swap
         std::atomic_store(&activeEffects, newEffects);
+
+        listeners.call(&Listener::chainChanged);
+
         return juce::Result::ok();
     }
 
     return juce::Result::fail("Failed to parse XML.");
+}
+
+void EffectChain::visitEffects(std::function<void(AudioEffect*)> visitor)
+{
+    // Grab a shared_ptr copy to ensure the list keeps existing during iteration
+    auto currentList = std::atomic_load(&activeEffects);
+    if (currentList)
+    {
+        for (auto& effect : *currentList)
+        {
+            visitor(effect.get());
+        }
+    }
 }

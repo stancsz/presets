@@ -23,7 +23,7 @@ public:
     void configure(const YAML::Node& config) override
     {
         if (config["gain"])
-            gain.setGainLinear(config["gain"].as<float>());
+            setGain(config["gain"].as<float>());
 
         if (config["gain_db"])
             gain.setGainDecibels(config["gain_db"].as<float>());
@@ -32,12 +32,28 @@ public:
     void configure(const juce::ValueTree& config) override
     {
         if (config.hasProperty("gain"))
-            gain.setGainLinear(config.getProperty("gain"));
+            setGain(config.getProperty("gain"));
 
         if (config.hasProperty("gain_db"))
             gain.setGainDecibels(config.getProperty("gain_db"));
     }
 
+    std::vector<EffectParameter> getParameters() override
+    {
+        return {
+            { "Gain", currentGain, 0.0f, 2.0f, [this](float v) { setGain(v); } }
+        };
+    }
+
+    std::string getName() const override { return "Gain"; }
+
 private:
+    void setGain(float g)
+    {
+        currentGain = g;
+        gain.setGainLinear(currentGain);
+    }
+
     juce::dsp::Gain<float> gain;
+    float currentGain = 1.0f;
 };
