@@ -31,9 +31,9 @@ The plugin currently includes a wide range of studio-quality modules:
 *   **Modulation**: Chorus, Phaser
 *   **Utility**: Gain, Distortion (WaveShaper)
 
-## Example Configuration
+## Example Configurations
 
-Simply paste this into the plugin's editor to create a channel strip with a custom UI:
+### Simple Linear Chain
 
 ```yaml
 - type: NoiseGate
@@ -50,6 +50,47 @@ Simply paste this into the plugin's editor to create a channel strip with a cust
 - type: Delay
   time: 0.375
   mix: 0.3
+```
+
+### Group, Parallel, and Loop-Like Processing
+
+Groups allow you to build more complex structures such as parallel branches and repeated processing:
+
+```yaml
+# Top-level series chain
+- type: Group
+  mode: series        # process children in order
+  children:
+    - type: NoiseGate
+      threshold: -60.0
+
+    # Parallel send/return style group
+    - type: Group
+      mode: parallel  # each child sees the same input, outputs are mixed
+      children:
+        # Dry path
+        - type: Gain
+          gainDb: 0.0
+
+        # Wet path
+        - type: Group
+          mode: series
+          children:
+            - type: Reverb
+              mix: 1.0
+            - type: Delay
+              time: 0.375
+              mix: 0.4
+
+    # Loop-like repeated processing
+    - type: Group
+      mode: series
+      repeat: 3       # run children 3 times in series
+      children:
+        - type: LadderFilter
+          mode: LP24
+          frequency: 400.0
+          drive: 1.5
 ```
 
 ## Building

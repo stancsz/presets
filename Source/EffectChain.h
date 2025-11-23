@@ -33,10 +33,11 @@ public:
     static std::unique_ptr<AudioEffect> createEffect(const std::string& type);
 
 private:
-    // Simple double buffering approach for thread safety without locking audio thread
-    using EffectList = std::vector<std::unique_ptr<AudioEffect>>;
+    struct Node;
+    using NodePtr = std::unique_ptr<Node>;
 
-    std::shared_ptr<EffectList> activeEffects;
+    // Simple double buffering approach for thread safety without locking audio thread
+    std::shared_ptr<Node> activeRoot;
 
     juce::dsp::ProcessSpec currentSpec { 44100.0, 512, 2 };
 
