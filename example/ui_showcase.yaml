@@ -1,0 +1,73 @@
+- type: Gain
+  info:
+    value: "Input Stage"
+    ui: Label
+  gain_db:
+    value: -6.0
+    ui: Slider
+    style: LinearVertical
+    min: -60.0
+    max: 6.0
+  meter:
+    value: 0.75
+    ui: Meter
+
+- type: Filter
+  type:
+    value: LowPass
+    ui: ComboBox
+    options:
+      - LowPass
+      - HighPass
+      - BandPass
+  frequency:
+    value: 1000.0
+    ui: Slider
+    style: Rotary
+    min: 20.0
+    max: 20000.0
+  q:
+    value: 0.7
+    ui: Slider
+    style: Rotary
+    min: 0.1
+    max: 10.0
+
+- type: Compressor
+  threshold:
+    value: -20.0
+    ui: Slider
+    style: Rotary
+  ratio:
+    value: 4.0
+    ui: Slider
+    min: 1.0
+    max: 20.0
+  attack: 
+    value: 10.0
+    ui: Slider
+  release: 
+    value: 100.0
+    ui: Slider
+  makeup:
+    value: true
+    ui: ToggleButton
+
+- type: Limiter
+  info:
+    value: "Output Protection"
+    ui: Label
+  threshold:
+    value: -0.1
+    ui: Slider
+    style: Linear
+    min: -10.0
+    max: 0.0
+  release:
+    value: 50.0
+    ui: Slider
+    min: 10.0
+    max: 500.0
+  reduction:
+    value: 0.2
+    ui: Meter

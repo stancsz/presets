@@ -1,0 +1,32 @@
+- type: NoiseGate
+  threshold: -60.0
+  ratio: 4.0
+
+- type: LadderFilter
+  mode: LP24
+  frequency:
+    value: 400.0
+    ui: Slider
+    style: Rotary
+  resonance:
+    value: 0.5
+    ui: Slider
+    style: Rotary
+  drive: 2.0
+
+- type: Phaser
+  rate: 0.5
+  depth: 0.7
+  frequency: 800.0
+
+- type: Delay
+  time: 0.375
+  feedback: 0.4
+  mix: 0.3
+
+- type: Panner
+  pan:
+    value: 0.0
+    ui: Slider
+    style: Linear
+  rule: Balanced

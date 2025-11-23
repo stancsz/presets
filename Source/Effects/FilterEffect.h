@@ -26,14 +26,7 @@ public:
         filter.reset();
     }
 
-    void configure(const YAML::Node& config) override
-    {
-        if (config["type"]) type = config["type"].as<std::string>();
-        if (config["frequency"]) frequency = config["frequency"].as<float>();
-        if (config["q"]) q = config["q"].as<float>();
 
-        updateCoefficients();
-    }
 
     void configure(const juce::ValueTree& config) override
     {

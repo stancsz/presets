@@ -1,0 +1,52 @@
+- type: Gain
+  info:
+    value: "Input Drive"
+    ui: Label
+  gain_db:
+    value: 6.0
+    ui: Slider
+    style: Rotary
+    min: 0.0
+    max: 24.0
+
+- type: Distortion
+  drive:
+    value: 12.0
+    ui: Slider
+    style: Rotary
+    min: 0.0
+    max: 40.0
+
+- type: Chorus
+  rate:
+    value: 0.5
+    ui: Slider
+    style: Rotary
+    min: 0.1
+    max: 5.0
+  depth:
+    value: 0.4
+    ui: Slider
+    style: Rotary
+  mix:
+    value: 0.5
+    ui: Slider
+    style: Linear
+
+- type: Reverb
+  room_size:
+    value: 0.8
+    ui: Slider
+    style: Rotary
+  damping:
+    value: 0.2
+    ui: Slider
+    style: Rotary
+  wet:
+    value: 0.4
+    ui: Slider
+    style: Linear
+
+- type: Limiter
+  threshold: -0.1
+  release: 100.0

@@ -19,11 +19,7 @@ public:
         limiter.reset();
     }
 
-    void configure(const YAML::Node& config) override
-    {
-        if (config["threshold"]) limiter.setThreshold(config["threshold"].as<float>());
-        if (config["release"]) limiter.setRelease(config["release"].as<float>());
-    }
+
 
     void configure(const juce::ValueTree& config) override
     {

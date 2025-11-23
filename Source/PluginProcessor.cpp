@@ -2,7 +2,7 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-YamlPresetPluginAudioProcessor::YamlPresetPluginAudioProcessor()
+PresetEngineAudioProcessor::PresetEngineAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
      : AudioProcessor (BusesProperties()
                      #if ! JucePlugin_IsMidiEffect
@@ -17,11 +17,11 @@ YamlPresetPluginAudioProcessor::YamlPresetPluginAudioProcessor()
 {
 }
 
-YamlPresetPluginAudioProcessor::~YamlPresetPluginAudioProcessor()
+PresetEngineAudioProcessor::~PresetEngineAudioProcessor()
 {
 }
 
-juce::AudioProcessorValueTreeState::ParameterLayout YamlPresetPluginAudioProcessor::createParameterLayout()
+juce::AudioProcessorValueTreeState::ParameterLayout PresetEngineAudioProcessor::createParameterLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
     // We keep these dummy parameters or remove them.
@@ -33,12 +33,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout YamlPresetPluginAudioProcess
 }
 
 //==============================================================================
-const juce::String YamlPresetPluginAudioProcessor::getName() const
+const juce::String PresetEngineAudioProcessor::getName() const
 {
     return JucePlugin_Name;
 }
 
-bool YamlPresetPluginAudioProcessor::acceptsMidi() const
+bool PresetEngineAudioProcessor::acceptsMidi() const
 {
    #if JucePlugin_WantsMidiInput
     return true;
@@ -47,7 +47,7 @@ bool YamlPresetPluginAudioProcessor::acceptsMidi() const
    #endif
 }
 
-bool YamlPresetPluginAudioProcessor::producesMidi() const
+bool PresetEngineAudioProcessor::producesMidi() const
 {
    #if JucePlugin_WantsMidiOutput
     return true;
@@ -56,7 +56,7 @@ bool YamlPresetPluginAudioProcessor::producesMidi() const
    #endif
 }
 
-bool YamlPresetPluginAudioProcessor::isMidiEffect() const
+bool PresetEngineAudioProcessor::isMidiEffect() const
 {
    #if JucePlugin_IsMidiEffect
     return true;
@@ -65,36 +65,36 @@ bool YamlPresetPluginAudioProcessor::isMidiEffect() const
    #endif
 }
 
-double YamlPresetPluginAudioProcessor::getTailLengthSeconds() const
+double PresetEngineAudioProcessor::getTailLengthSeconds() const
 {
     return 0.0;
 }
 
-int YamlPresetPluginAudioProcessor::getNumPrograms()
+int PresetEngineAudioProcessor::getNumPrograms()
 {
     return 1;
 }
 
-int YamlPresetPluginAudioProcessor::getCurrentProgram()
+int PresetEngineAudioProcessor::getCurrentProgram()
 {
     return 0;
 }
 
-void YamlPresetPluginAudioProcessor::setCurrentProgram (int index)
+void PresetEngineAudioProcessor::setCurrentProgram (int index)
 {
 }
 
-const juce::String YamlPresetPluginAudioProcessor::getProgramName (int index)
+const juce::String PresetEngineAudioProcessor::getProgramName (int index)
 {
     return {};
 }
 
-void YamlPresetPluginAudioProcessor::changeProgramName (int index, const juce::String& newName)
+void PresetEngineAudioProcessor::changeProgramName (int index, const juce::String& newName)
 {
 }
 
 //==============================================================================
-void YamlPresetPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void PresetEngineAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = sampleRate;
@@ -104,12 +104,12 @@ void YamlPresetPluginAudioProcessor::prepareToPlay (double sampleRate, int sampl
     effectChain.prepare(spec);
 }
 
-void YamlPresetPluginAudioProcessor::releaseResources()
+void PresetEngineAudioProcessor::releaseResources()
 {
     effectChain.reset();
 }
 
-bool YamlPresetPluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool PresetEngineAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
   #if JucePlugin_IsMidiEffect
     juce::ignoreUnused (layouts);
@@ -128,7 +128,7 @@ bool YamlPresetPluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& 
   #endif
 }
 
-void YamlPresetPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void PresetEngineAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
@@ -141,18 +141,18 @@ void YamlPresetPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
 }
 
 //==============================================================================
-bool YamlPresetPluginAudioProcessor::hasEditor() const
+bool PresetEngineAudioProcessor::hasEditor() const
 {
     return true;
 }
 
-juce::AudioProcessorEditor* YamlPresetPluginAudioProcessor::createEditor()
+juce::AudioProcessorEditor* PresetEngineAudioProcessor::createEditor()
 {
-    return new YamlPresetPluginAudioProcessorEditor (*this);
+    return new PresetEngineAudioProcessorEditor (*this);
 }
 
 //==============================================================================
-void YamlPresetPluginAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+void PresetEngineAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     // Save the current config.
     // For now, we assume the config string is stored in a member or we reconstruct it.
@@ -161,7 +161,7 @@ void YamlPresetPluginAudioProcessor::getStateInformation (juce::MemoryBlock& des
     stream.writeString(currentConfigCode);
 }
 
-void YamlPresetPluginAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void PresetEngineAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     juce::MemoryInputStream stream(data, sizeInBytes, false);
     juce::String config = stream.readString();
@@ -169,13 +169,16 @@ void YamlPresetPluginAudioProcessor::setStateInformation (const void* data, int 
     loadConfig(config);
 }
 
-juce::Result YamlPresetPluginAudioProcessor::loadConfig(const juce::String& config)
+juce::Result PresetEngineAudioProcessor::loadConfig(const juce::String& config)
 {
     currentConfigCode = config;
 
     // Detect format
-    if (config.trim().startsWith("<"))
+    juce::String trimmed = config.trim();
+    if (trimmed.startsWith("<"))
         return effectChain.loadFromXml(config);
+    else if (trimmed.startsWith("{") || trimmed.startsWith("["))
+        return effectChain.loadFromJson(config);
     else
         return effectChain.loadFromYaml(config);
 }
@@ -183,5 +186,5 @@ juce::Result YamlPresetPluginAudioProcessor::loadConfig(const juce::String& conf
 //==============================================================================
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new YamlPresetPluginAudioProcessor();
+    return new PresetEngineAudioProcessor();
 }

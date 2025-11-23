@@ -1,0 +1,4 @@
+<Chain>
+  <Effect type="Gain" gain_db="-6.0" />
+  <Effect type="Limiter" threshold="-0.5" release="50.0" />
+</Chain>

@@ -1,0 +1,11 @@
+- type: Gain
+  gain_db: -6.0
+
+- type: Filter
+  type: LowPass
+  frequency: 2000.0
+  q: 0.7
+
+- type: Limiter
+  threshold: -0.1
+  release: 100.0

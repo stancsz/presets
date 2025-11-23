@@ -20,22 +20,15 @@ public:
         gain.reset();
     }
 
-    void configure(const YAML::Node& config) override
-    {
-        if (config["gain"])
-            gain.setGainLinear(config["gain"].as<float>());
 
-        if (config["gain_db"])
-            gain.setGainDecibels(config["gain_db"].as<float>());
-    }
 
     void configure(const juce::ValueTree& config) override
     {
-        if (config.hasProperty("gain"))
-            gain.setGainLinear(config.getProperty("gain"));
+        if (config.hasProperty("gain") || config.getChildWithName("gain").isValid())
+            gain.setGainLinear(getParameterValue(config, "gain"));
 
-        if (config.hasProperty("gain_db"))
-            gain.setGainDecibels(config.getProperty("gain_db"));
+        if (config.hasProperty("gain_db") || config.getChildWithName("gain_db").isValid())
+            gain.setGainDecibels(getParameterValue(config, "gain_db"));
     }
 
 private:

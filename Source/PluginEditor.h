@@ -7,25 +7,35 @@
 //==============================================================================
 /**
 */
-class YamlPresetPluginAudioProcessorEditor  : public juce::AudioProcessorEditor
+class PresetEngineAudioProcessorEditor  : public juce::AudioProcessorEditor
 {
 public:
-    YamlPresetPluginAudioProcessorEditor (YamlPresetPluginAudioProcessor&);
-    ~YamlPresetPluginAudioProcessorEditor() override;
+    PresetEngineAudioProcessorEditor (PresetEngineAudioProcessor&);
+    ~PresetEngineAudioProcessorEditor() override;
 
+    //==============================================================================
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
 
 private:
-    YamlPresetPluginAudioProcessor& audioProcessor;
+    void rebuildUi();
+
+    PresetEngineAudioProcessor& audioProcessor;
 
     ModernLookAndFeel lookAndFeel;
 
     juce::Label     titleLabel;
+    
+    // Dynamic UI
+    juce::Viewport  viewport;
+    std::unique_ptr<juce::Component> container;
+    juce::OwnedArray<juce::Component> effectComponents;
+
+    // Code Editor
     juce::TextEditor codeEditor;
     juce::TextButton applyButton;
     juce::Label     statusLabel;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (YamlPresetPluginAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PresetEngineAudioProcessorEditor)
 };

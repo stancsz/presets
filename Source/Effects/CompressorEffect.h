@@ -19,13 +19,7 @@ public:
         compressor.reset();
     }
 
-    void configure(const YAML::Node& config) override
-    {
-        if (config["threshold"]) compressor.setThreshold(config["threshold"].as<float>());
-        if (config["ratio"]) compressor.setRatio(config["ratio"].as<float>());
-        if (config["attack"]) compressor.setAttack(config["attack"].as<float>());
-        if (config["release"]) compressor.setRelease(config["release"].as<float>());
-    }
+
 
     void configure(const juce::ValueTree& config) override
     {

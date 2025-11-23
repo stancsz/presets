@@ -3,12 +3,12 @@
 #include <JuceHeader.h>
 #include "EffectChain.h"
 
-class YamlPresetPluginAudioProcessor  : public juce::AudioProcessor
+class PresetEngineAudioProcessor  : public juce::AudioProcessor
 {
 public:
     //==============================================================================
-    YamlPresetPluginAudioProcessor();
-    ~YamlPresetPluginAudioProcessor() override;
+    PresetEngineAudioProcessor();
+    ~PresetEngineAudioProcessor() override;
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -45,6 +45,7 @@ public:
 
     juce::Result loadConfig(const juce::String& config);
     juce::String getCurrentConfig() const { return currentConfigCode; }
+    juce::ValueTree getCurrentConfigTree() const { return effectChain.getCurrentConfig(); }
 
 private:
     juce::AudioProcessorValueTreeState apvts;
@@ -54,5 +55,5 @@ private:
     juce::String currentConfigCode;
 
     //==============================================================================
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (YamlPresetPluginAudioProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PresetEngineAudioProcessor)
 };

@@ -49,6 +49,14 @@ target_sources(YamlPresetPlugin
         Source/Effects/FilterEffect.h
         Source/Effects/CompressorEffect.h
         Source/Effects/LimiterEffect.h
+        Source/Effects/ReverbEffect.h
+        Source/Effects/ChorusEffect.h
+        Source/Effects/DistortionEffect.h
+        Source/Effects/PhaserEffect.h
+        Source/Effects/DelayEffect.h
+        Source/Effects/NoiseGateEffect.h
+        Source/Effects/LadderFilterEffect.h
+        Source/Effects/PannerEffect.h
 )
 
 target_compile_definitions(YamlPresetPlugin PUBLIC
