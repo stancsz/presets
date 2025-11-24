@@ -15,9 +15,10 @@ public:
         if (!uiType.equalsIgnoreCase("Button") && !uiType.equalsIgnoreCase("ToggleButton") && !uiType.equalsIgnoreCase("Label"))
         {
             addAndMakeVisible(label);
-            label.setText(name, juce::dontSendNotification);
+            label.setText(name.toUpperCase(), juce::dontSendNotification); // All caps for modern look
             label.setJustificationType(juce::Justification::centred);
-            label.setFont(12.0f);
+            label.setFont(juce::Font(10.0f, juce::Font::bold)); // Smaller, bolder
+            label.setColour(juce::Label::textColourId, juce::Colour(0xff888888));
         }
 
         // Control Factory
@@ -31,7 +32,9 @@ public:
             else if (style.equalsIgnoreCase("LinearVertical")) s->setSliderStyle(juce::Slider::LinearVertical);
             else s->setSliderStyle(juce::Slider::RotaryVerticalDrag);
             
-            s->setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 20);
+            s->setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 14);
+            s->setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+            s->setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
             
             float val = config.getProperty("value", 0.0f);
             float min = config.getProperty("min", 0.0f);
@@ -80,7 +83,6 @@ public:
             if (val.isString())
             {
                 // Try to find item with this text
-                // JUCE ComboBox doesn't have a direct "setSelectedText", so we loop
                 bool found = false;
                 for (int i=0; i<c->getNumItems(); ++i)
                 {
@@ -152,10 +154,16 @@ class DynamicEffectComponent : public juce::Component
 public:
     DynamicEffectComponent(const juce::ValueTree& effectTree)
     {
-        // Title
+        // Title (We can make this invisible or very subtle for minimalism)
         juce::String type = effectTree.getProperty("type").toString();
-        group.setText(type);
-        addAndMakeVisible(group);
+        // group.setText(type); // Don't show group text frame, just a label maybe?
+        // Actually let's just use the FlexBox to flow items. Maybe add a Label for the block name.
+
+        effectNameLabel.setText(type.toUpperCase(), juce::dontSendNotification);
+        effectNameLabel.setFont(juce::Font(14.0f, juce::Font::bold));
+        effectNameLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        effectNameLabel.setJustificationType(juce::Justification::centredLeft);
+        addAndMakeVisible(effectNameLabel);
 
         // Iterate properties and children to find parameters
         // 1. Properties (Simple scalars)
@@ -165,10 +173,9 @@ public:
             if (name == "type") continue;
 
             auto val = effectTree.getProperty(name);
-            // Create a synthetic config tree for simple scalars
             juce::ValueTree simpleConfig("Param");
             simpleConfig.setProperty("value", val, nullptr);
-            simpleConfig.setProperty("ui", "Slider", nullptr); // Default to slider
+            simpleConfig.setProperty("ui", "Slider", nullptr);
 
             auto* comp = new DynamicParameterComponent(name, simpleConfig);
             params.add(comp);
@@ -178,11 +185,7 @@ public:
         // 2. Children (Complex params)
         for (const auto& child : effectTree)
         {
-            auto name = child.getType().toString(); // Use node type as param name? Or name property?
-            // In our schema: gain_db: { ... } -> Child name is "gain_db" (if we used property name as tag)
-            // But yamlToValueTree uses the key as the tag name if it's a map.
-            // So child.getType() is the parameter name.
-            
+            auto name = child.getType().toString();
             auto* comp = new DynamicParameterComponent(name, child);
             params.add(comp);
             addAndMakeVisible(comp);
@@ -192,10 +195,11 @@ public:
     void resized() override
     {
         auto area = getLocalBounds();
-        group.setBounds(area);
         
-        auto content = area.reduced(10, 20); // Account for group title
+        // Header
+        effectNameLabel.setBounds(area.removeFromTop(25).reduced(5, 0));
 
+        // Content
         juce::FlexBox flex;
         flex.flexWrap = juce::FlexBox::Wrap::wrap;
         flex.justifyContent = juce::FlexBox::JustifyContent::flexStart;
@@ -203,14 +207,14 @@ public:
 
         for (auto* p : params)
         {
-            flex.items.add(juce::FlexItem(*p).withWidth(80.0f).withHeight(80.0f).withMargin(5.0f));
+            flex.items.add(juce::FlexItem(*p).withWidth(70.0f).withHeight(80.0f).withMargin(5.0f));
         }
 
-        flex.performLayout(content);
+        flex.performLayout(area);
     }
 
 private:
-    juce::GroupComponent group;
+    juce::Label effectNameLabel;
     juce::OwnedArray<DynamicParameterComponent> params;
 };
 
@@ -221,34 +225,36 @@ PresetEngineAudioProcessorEditor::PresetEngineAudioProcessorEditor (PresetEngine
     // Apply custom look and feel
     setLookAndFeel(&lookAndFeel);
 
-    setSize (800, 600);
+    setSize (900, 500); // Widescreen modern aspect
 
     // Header
-    titleLabel.setText("Preset Engine", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(20.0f, juce::Font::bold));
+    titleLabel.setText("PRESET ENGINE 2026", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(24.0f, juce::Font::bold));
+    titleLabel.setColour(juce::Label::textColourId, juce::Colour(0xff00bcd4)); // Cyan title
     addAndMakeVisible(titleLabel);
 
-    // Viewport for Dynamic UI
+    // Spectrum
+    addAndMakeVisible(spectrumComponent);
+
+    // Dynamic UI Viewport
     addAndMakeVisible(viewport);
     viewport.setScrollBarsShown(true, false);
-    
-    // Container for effects
     container.reset(new juce::Component());
     viewport.setViewedComponent(container.get(), false);
 
-    // Code Editor
+    // Code Editor Controls
     languageBox.addItem("YAML", 1);
     languageBox.addItem("JSON", 2);
     languageBox.addItem("XML", 3);
     languageBox.addItem("Python", 4);
-    languageBox.setSelectedId(1); // Default YAML
+    languageBox.setSelectedId(1);
     addAndMakeVisible(languageBox);
 
     exampleButton.setButtonText("Load Example");
     exampleButton.onClick = [this] {
         int id = languageBox.getSelectedId();
         juce::String example = "";
-        if (id == 1) // YAML - Direct Plugin Usage
+        if (id == 1) // YAML
         {
             example = "# Paste this directly into the plugin\n"
                      "- type: Gain\n"
@@ -261,46 +267,32 @@ PresetEngineAudioProcessorEditor::PresetEngineAudioProcessorEditor (PresetEngine
                      "  mode: LowPass\n"
                      "  frequency: 1000.0";
         }
-        else if (id == 2) // JSON - Direct Plugin Usage
+        else if (id == 2) // JSON
         {
-            example = "[\n"
+             example = "[\n"
                      "  {\n"
                      "    \"type\": \"Gain\",\n"
                      "    \"gain_db\": {\n"
                      "      \"value\": -6.0,\n"
                      "      \"ui\": \"Slider\"\n"
                      "    }\n"
-                     "  },\n"
-                     "  {\n"
-                     "    \"type\": \"Filter\",\n"
-                     "    \"mode\": \"LowPass\",\n"
-                     "    \"frequency\": 1000.0\n"
                      "  }\n"
                      "]";
         }
-        else if (id == 3) // XML - Direct Plugin Usage
+        else if (id == 3) // XML
         {
-            example = "<EffectChain>\n"
+             example = "<EffectChain>\n"
                      "  <Effect type=\"Gain\">\n"
                      "    <gain_db value=\"-6.0\" ui=\"Slider\"/>\n"
                      "  </Effect>\n"
-                     "  <Effect type=\"Filter\" mode=\"LowPass\" frequency=\"1000.0\"/>\n"
                      "</EffectChain>";
         }
-        else if (id == 4) // Python - SDK Generator (NOT for direct paste)
+        else if (id == 4) // Python
         {
-            example = "# SDK USAGE - Run this Python script to GENERATE a preset file\n"
-                     "# Then load the generated .yaml/.json file into the plugin\n"
-                     "#\n"
-                     "# See: sdk/python/example_generator.py\n"
-                     "\n"
-                     "from preset_engine import Chain, Gain, Filter\n"
-                     "\n"
+             example = "# SDK USAGE - Run this Python script to GENERATE a preset file\n"
+                     "from preset_engine import Chain, Gain\n"
                      "chain = Chain()\n"
-                     "chain.add(Gain(db=-6.0, ui=True))\n"
-                     "chain.add(Filter(mode=\"LowPass\", freq=1000.0))\n"
-                     "\n"
-                     "# Output YAML to paste into plugin:\n"
+                     "chain.add(Gain(db=-6.0))\n"
                      "print(chain.to_yaml())";
         }
         codeEditor.setText(example);
@@ -310,9 +302,8 @@ PresetEngineAudioProcessorEditor::PresetEngineAudioProcessorEditor (PresetEngine
     codeEditor.setMultiLine(true);
     codeEditor.setReturnKeyStartsNewLine(true);
     codeEditor.setTabKeyUsedAsCharacter(true);
-    codeEditor.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 14.0f, juce::Font::plain));
+    codeEditor.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 13.0f, juce::Font::plain));
     
-    // Only set text if empty (first run)
     if (audioProcessor.getCurrentConfig().isEmpty())
         exampleButton.triggerClick();
     else
@@ -320,31 +311,28 @@ PresetEngineAudioProcessorEditor::PresetEngineAudioProcessorEditor (PresetEngine
         
     addAndMakeVisible(codeEditor);
 
-    // Status & Button
     statusLabel.setText("Ready.", juce::dontSendNotification);
+    statusLabel.setFont(juce::Font(12.0f));
+    statusLabel.setJustificationType(juce::Justification::centredRight);
     addAndMakeVisible(statusLabel);
 
-    applyButton.setButtonText("Apply");
+    applyButton.setButtonText("APPLY");
     applyButton.onClick = [this] {
-        // Pass the selected language ID as a hint? 
-        // For now, we'll let the processor auto-detect, but we could prefix the code.
-        // Actually, let's just pass the text. The parser will handle it.
         auto result = audioProcessor.loadConfig(codeEditor.getText());
         if (result.wasOk())
         {
-            statusLabel.setText("Loaded.", juce::dontSendNotification);
+            statusLabel.setText("Loaded Successfully", juce::dontSendNotification);
             statusLabel.setColour(juce::Label::textColourId, juce::Colours::lightgreen);
             rebuildUi();
         }
         else
         {
-            statusLabel.setText(result.getErrorMessage(), juce::dontSendNotification);
+            statusLabel.setText("Error: " + result.getErrorMessage(), juce::dontSendNotification);
             statusLabel.setColour(juce::Label::textColourId, juce::Colours::red);
         }
     };
     addAndMakeVisible(applyButton);
 
-    // Initial build
     rebuildUi();
 }
 
@@ -363,7 +351,7 @@ void PresetEngineAudioProcessorEditor::rebuildUi()
     
     // Layout logic: Stack effects vertically
     int y = 0;
-    const int effectHeight = 120; // Fixed height for now, or dynamic
+    const int effectHeight = 110;
 
     for (const auto& child : tree)
     {
@@ -371,48 +359,80 @@ void PresetEngineAudioProcessorEditor::rebuildUi()
         effectComponents.add(comp);
         container->addAndMakeVisible(comp);
         
-        comp->setBounds(0, y, 760, effectHeight); // Width matches viewport roughly
+        comp->setBounds(0, y, container->getWidth(), effectHeight);
         y += effectHeight + 5;
     }
 
-    container->setSize(760, std::max(300, y));
+    if (container->getWidth() > 0)
+    {
+         // Refresh bounds
+         for (auto* comp : effectComponents)
+            comp->setBounds(0, comp->getY(), container->getWidth(), comp->getHeight());
+    }
+
+    container->setSize(container->getWidth(), std::max(300, y));
 }
 
 void PresetEngineAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
+    // Modern Dark Background
+    g.fillAll (juce::Colour(0xff121212));
+
+    // Header background (Top strip)
+    g.setColour(juce::Colour(0xff1e1e1e));
+    g.fillRect(0, 0, getWidth(), 40);
+
+    // Separator
+    g.setColour(juce::Colours::black);
+    g.drawHorizontalLine(40, 0.0f, (float)getWidth());
 }
 
 void PresetEngineAudioProcessorEditor::resized()
 {
-    auto area = getLocalBounds().reduced(10);
+    auto area = getLocalBounds();
 
     // Header
-    titleLabel.setBounds(area.removeFromTop(30));
+    auto header = area.removeFromTop(40);
+    titleLabel.setBounds(header.reduced(10, 0));
 
-    // Footer
-    auto footer = area.removeFromBottom(180); // Increased for language selector
-    
-    // Top row: Language selector + Example button
-    auto topRow = footer.removeFromTop(30);
-    languageBox.setBounds(topRow.removeFromLeft(120));
-    topRow.removeFromLeft(5);
-    exampleButton.setBounds(topRow.removeFromLeft(120));
-    
-    footer.removeFromTop(5);
-    
-    // Second row: Apply button + Status
-    auto buttonArea = footer.removeFromTop(30);
-    applyButton.setBounds(buttonArea.removeFromRight(150));
-    statusLabel.setBounds(buttonArea);
+    // Split: Left (40%), Right (60%)
+    auto leftArea = area.removeFromLeft((int)(getWidth() * 0.4));
+    auto rightArea = area; // Remaining
 
-    footer.removeFromTop(5);
-    codeEditor.setBounds(footer);
-
-    // Main UI
-    area.removeFromBottom(10);
-    viewport.setBounds(area);
-    
+    // Right Side: Viewport (Controls)
+    viewport.setBounds(rightArea.reduced(10));
     if (container)
-        container->setSize(viewport.getWidth() - 20, container->getHeight());
+        container->setSize(viewport.getWidth() - 15, container->getHeight());
+
+    // Left Side:
+    // Top 33%: Spectrum
+    auto spectrumArea = leftArea.removeFromTop((int)(leftArea.getHeight() * 0.33));
+    spectrumComponent.setBounds(spectrumArea.reduced(10));
+    
+    // Middle: Controls strip
+    auto controlsArea = leftArea.removeFromTop(40);
+    controlsArea.reduce(10, 5);
+    
+    languageBox.setBounds(controlsArea.removeFromLeft(80));
+    controlsArea.removeFromLeft(5);
+    exampleButton.setBounds(controlsArea.removeFromLeft(100));
+    controlsArea.removeFromLeft(5);
+    applyButton.setBounds(controlsArea.removeFromRight(80));
+    statusLabel.setBounds(controlsArea);
+    
+    // Bottom: Code Editor
+    codeEditor.setBounds(leftArea.reduced(10));
+    
+    // Trigger rebuild layout to ensure container widths are correct
+    if (container && container->getWidth() > 0)
+    {
+        int y = 0;
+        const int effectHeight = 110;
+        for (auto* comp : effectComponents)
+        {
+            comp->setBounds(0, y, container->getWidth(), effectHeight);
+            y += effectHeight + 5;
+        }
+        container->setSize(container->getWidth(), std::max(300, y));
+    }
 }
