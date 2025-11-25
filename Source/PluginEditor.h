@@ -109,6 +109,7 @@ public:
 
 private:
     void rebuildUi();
+    juce::String parsePythonToYaml(const juce::String& pythonCode);
 
     PresetEngineAudioProcessor& audioProcessor;
 

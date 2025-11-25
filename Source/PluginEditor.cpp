@@ -8,6 +8,37 @@
 class DynamicParameterComponent : public juce::Component
 {
 public:
+    static juce::String formatParamLabel(const juce::String& name)
+    {
+        juce::String s = name;
+        s = s.replace("_", " ");
+        
+        // Handle units
+        if (s.endsWithIgnoreCase(" db")) s = s.dropLastCharacters(3) + " (dB)";
+        else if (s.endsWithIgnoreCase(" hz")) s = s.dropLastCharacters(3) + " (Hz)";
+        else if (s.endsWithIgnoreCase(" ms")) s = s.dropLastCharacters(3) + " (ms)";
+        
+        // Title Case
+        bool capitalizeNext = true;
+        juce::String result;
+        for (int i = 0; i < s.length(); ++i)
+        {
+            auto c = s[i];
+            if (capitalizeNext && std::isalpha(c))
+            {
+                result += (juce::juce_wchar)std::toupper(c);
+                capitalizeNext = false;
+            }
+            else
+            {
+                result += c;
+                if (std::isspace(c)) capitalizeNext = true;
+            }
+        }
+        
+        return result;
+    }
+
     DynamicParameterComponent(const juce::String& name, const juce::ValueTree& config)
         : paramName(name)
     {
@@ -17,7 +48,7 @@ public:
         if (!uiType.equalsIgnoreCase("Button") && !uiType.equalsIgnoreCase("ToggleButton") && !uiType.equalsIgnoreCase("Label"))
         {
             addAndMakeVisible(label);
-            label.setText(name.toUpperCase(), juce::dontSendNotification); // All caps for modern look
+            label.setText(formatParamLabel(name), juce::dontSendNotification); // Nicely formatted
             label.setJustificationType(juce::Justification::centred);
             label.setFont(juce::Font(10.0f, juce::Font::bold)); // Smaller, bolder
             label.setColour(juce::Label::textColourId, juce::Colour(0xff888888));
@@ -60,7 +91,7 @@ public:
         {
             auto* b = new juce::ToggleButton();
             component.reset(b);
-            b->setButtonText(name);
+            b->setButtonText(formatParamLabel(name));
             bool val = config.getProperty("value", false);
             b->setToggleState(val, juce::dontSendNotification);
         }
@@ -93,7 +124,7 @@ public:
                 bool found = false;
                 for (int i=0; i<c->getNumItems(); ++i)
                 {
-                    if (c->getItemText(i) == val.toString())
+                    if (c->getItemText(i).equalsIgnoreCase(val.toString()))
                     {
                         c->setSelectedItemIndex(i);
                         found = true;
@@ -168,7 +199,7 @@ public:
 
         effectNameLabel.setText(type.toUpperCase(), juce::dontSendNotification);
         effectNameLabel.setFont(juce::Font(14.0f, juce::Font::bold));
-        effectNameLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        effectNameLabel.setColour(juce::Label::textColourId, juce::Colour(0xff00bcd4)); // Cyan
         effectNameLabel.setJustificationType(juce::Justification::centredLeft);
         addAndMakeVisible(effectNameLabel);
 
@@ -182,7 +213,40 @@ public:
             auto val = effectTree.getProperty(name);
             juce::ValueTree simpleConfig("Param");
             simpleConfig.setProperty("value", val, nullptr);
-            simpleConfig.setProperty("ui", "Slider", nullptr);
+            
+            // Heuristic for UI Type
+            juce::String uiType = "Slider";
+            if (name.equalsIgnoreCase("mode"))
+                uiType = "ComboBox";
+            else if (name.equalsIgnoreCase("bypass") || name.equalsIgnoreCase("enabled"))
+                uiType = "ToggleButton";
+            else if (val.isString())
+                uiType = "Label"; // Fallback for strings
+            
+            simpleConfig.setProperty("ui", uiType, nullptr);
+
+            // Populate options for known modes
+            if (uiType == "ComboBox" && name.equalsIgnoreCase("mode"))
+            {
+                juce::StringArray options;
+                if (type.equalsIgnoreCase("Filter"))
+                {
+                    options.add("LowPass"); options.add("HighPass"); options.add("BandPass");
+                }
+                else if (type.equalsIgnoreCase("LadderFilter"))
+                {
+                    options.add("LP12"); options.add("LP24"); 
+                    options.add("HP12"); options.add("HP24");
+                    options.add("BP12"); options.add("BP24");
+                }
+                
+                for (const auto& opt : options)
+                {
+                    juce::ValueTree item("Item");
+                    item.setProperty("value", opt, nullptr);
+                    simpleConfig.addChild(item, -1, nullptr);
+                }
+            }
 
             auto* comp = new DynamicParameterComponent(name, simpleConfig);
             params.add(comp);
@@ -199,9 +263,20 @@ public:
         }
     }
 
+    void paint(juce::Graphics& g) override
+    {
+        // Background for the effect block
+        g.setColour(juce::Colour(0xff2a2a2a));
+        g.fillRoundedRectangle(getLocalBounds().toFloat().reduced(2), 6.0f);
+        
+        // Border
+        g.setColour(juce::Colour(0xff3a3a3a));
+        g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(2), 6.0f, 1.0f);
+    }
+
     void resized() override
     {
-        auto area = getLocalBounds();
+        auto area = getLocalBounds().reduced(5); // Padding inside the block
         
         // Header
         effectNameLabel.setBounds(area.removeFromTop(25).reduced(5, 0));
@@ -325,7 +400,22 @@ PresetEngineAudioProcessorEditor::PresetEngineAudioProcessorEditor (PresetEngine
 
     applyButton.setButtonText("APPLY");
     applyButton.onClick = [this] {
-        auto result = audioProcessor.loadConfig(codeEditor.getText());
+        juce::String configToLoad = codeEditor.getText();
+
+        if (languageBox.getSelectedId() == 4) // Python
+        {
+             // Transpile "Python" to YAML
+             configToLoad = parsePythonToYaml(configToLoad);
+             
+             if (configToLoad.isEmpty())
+             {
+                 statusLabel.setText("Error: No valid chain.add() calls found.", juce::dontSendNotification);
+                 statusLabel.setColour(juce::Label::textColourId, juce::Colours::red);
+                 return;
+             }
+        }
+
+        auto result = audioProcessor.loadConfig(configToLoad);
         if (result.wasOk())
         {
             statusLabel.setText("Loaded Successfully", juce::dontSendNotification);
@@ -349,6 +439,63 @@ PresetEngineAudioProcessorEditor::~PresetEngineAudioProcessorEditor()
     viewport.setViewedComponent(nullptr, false);
 }
 
+juce::String PresetEngineAudioProcessorEditor::parsePythonToYaml(const juce::String& pythonCode)
+{
+    juce::String yaml = "";
+    juce::StringArray lines;
+    lines.addLines(pythonCode);
+
+    for (auto& line : lines)
+    {
+        line = line.trim();
+        if (line.startsWith("chain.add("))
+        {
+            // Extract content inside chain.add(...)
+            int start = line.indexOf("(") + 1;
+            int end = line.lastIndexOf(")");
+            
+            if (end > start)
+            {
+                juce::String content = line.substring(start, end).trim();
+                
+                // Parse "EffectName(args)"
+                int parenOpen = content.indexOf("(");
+                int parenClose = content.lastIndexOf(")");
+                
+                if (parenOpen > 0 && parenClose > parenOpen)
+                {
+                    juce::String type = content.substring(0, parenOpen).trim();
+                    juce::String args = content.substring(parenOpen + 1, parenClose);
+                    
+                    yaml += "- type: " + type + "\n";
+                    
+                    // Parse args: key=value, key=value
+                    juce::StringArray parts;
+                    parts.addTokens(args, ",", "\"'"); 
+                    
+                    for (auto& part : parts)
+                    {
+                        part = part.trim();
+                        int eq = part.indexOf("=");
+                        if (eq > 0)
+                        {
+                            juce::String key = part.substring(0, eq).trim();
+                            juce::String val = part.substring(eq + 1).trim();
+                            
+                            // Remove quotes if present
+                            val = val.unquoted();
+                            
+                            yaml += "  " + key + ": " + val + "\n";
+                        }
+                    }
+                    yaml += "\n";
+                }
+            }
+        }
+    }
+    return yaml;
+}
+
 void PresetEngineAudioProcessorEditor::rebuildUi()
 {
     container->removeAllChildren();
@@ -357,8 +504,13 @@ void PresetEngineAudioProcessorEditor::rebuildUi()
     auto tree = audioProcessor.getCurrentConfigTree();
     
     // Layout logic: Stack effects vertically
+    // Layout logic: Stack effects vertically
     int y = 0;
     const int effectHeight = 110;
+    
+    int w = container->getWidth();
+    if (w <= 0) w = viewport.getWidth() - 20; // Fallback to viewport width
+    if (w <= 0) w = 400; // Fallback to default
 
     for (const auto& child : tree)
     {
@@ -366,7 +518,7 @@ void PresetEngineAudioProcessorEditor::rebuildUi()
         effectComponents.add(comp);
         container->addAndMakeVisible(comp);
         
-        comp->setBounds(0, y, container->getWidth(), effectHeight);
+        comp->setBounds(0, y, w, effectHeight);
         y += effectHeight + 5;
     }
 
@@ -377,7 +529,7 @@ void PresetEngineAudioProcessorEditor::rebuildUi()
             comp->setBounds(0, comp->getY(), container->getWidth(), comp->getHeight());
     }
 
-    container->setSize(container->getWidth(), std::max(300, y));
+    container->setSize(w, std::max(300, y));
 }
 
 void PresetEngineAudioProcessorEditor::paint (juce::Graphics& g)

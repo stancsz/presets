@@ -164,13 +164,22 @@ namespace {
                 if (val.IsScalar())
                 {
                     // simple heuristic for types
-                    try
-                    {
-                        tree.setProperty(juce::Identifier(key), juce::var(val.as<float>()), nullptr);
-                    }
-                    catch (...)
+                    bool forceString = (key == "mode" || key == "type" || key == "ui" || key == "style");
+                    
+                    if (forceString)
                     {
                         tree.setProperty(juce::Identifier(key), juce::String(val.as<std::string>()), nullptr);
+                    }
+                    else
+                    {
+                        try
+                        {
+                            tree.setProperty(juce::Identifier(key), juce::var(val.as<float>()), nullptr);
+                        }
+                        catch (...)
+                        {
+                            tree.setProperty(juce::Identifier(key), juce::String(val.as<std::string>()), nullptr);
+                        }
                     }
                 }
                 else
