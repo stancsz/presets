@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.15)
 
 project(PresetEngine VERSION 0.0.1)
 
@@ -12,6 +12,9 @@ FetchContent_Declare(
 )
 
 # --- yaml-cpp ---
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
     yaml-cpp
     GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
@@ -62,6 +65,8 @@ target_sources(PresetEngine
 target_compile_definitions(PresetEngine PUBLIC
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
+    NOMINMAX
+    WIN32_LEAN_AND_MEAN
 )
 
 target_link_libraries(PresetEngine

@@ -1,20 +1,45 @@
 @echo off
-echo Building YamlPresetPlugin...
+setlocal
 
-if not exist build mkdir build
-cd build
+if not exist "release" mkdir release
+if exist "build" (
+    echo Cleaning build directory...
+    rmdir /s /q build
+)
 
 echo Configuring CMake...
-cmake .. -DCMAKE_BUILD_TYPE=Release -A x64
+cmake -B build -S . -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+if %errorlevel% neq 0 (
+    echo CMake configuration failed.
+    exit /b %errorlevel%
+)
 
-echo Building Release...
-cmake --build . --config Release --parallel 4
+echo Building...
+cmake --build build --config Release
+if %errorlevel% neq 0 (
+    echo Build failed.
+    exit /b %errorlevel%
+)
 
-cd ..
+echo Packaging...
+if not exist "build\package" mkdir build\package
 
-if not exist release mkdir release
+if exist "build\PresetEngine_artefacts\Release\VST3" (
+    xcopy "build\PresetEngine_artefacts\Release\VST3" "build\package\VST3\" /E /I /Y
+) else (
+    echo Error: VST3 artifact not found!
+    exit /b 1
+)
 
-echo Zipping VST3...
-powershell Compress-Archive -Path "build\PresetEngine_artefacts\Release\VST3\PresetEngine.vst3" -DestinationPath "release\presets_windows.zip" -Force
+if exist "build\PresetEngine_artefacts\Release\Standalone" (
+    xcopy "build\PresetEngine_artefacts\Release\Standalone" "build\package\Standalone\" /E /I /Y
+) else (
+    echo Warning: Standalone artifact not found.
+)
 
-echo Done. Artifact at release\presets_windows.zip
+echo Zipping...
+if exist "release\presets_windows.zip" del "release\presets_windows.zip"
+powershell -command "Compress-Archive -Path 'build\package\*' -DestinationPath 'release\presets_windows.zip' -Force"
+
+echo Build complete: release\presets_windows.zip
+endlocal
