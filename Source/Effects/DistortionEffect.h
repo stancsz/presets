@@ -1,5 +1,6 @@
 #pragma once
 #include "../AudioEffect.h"
+#include <cmath>
 
 class DistortionEffect : public AudioEffect
 {

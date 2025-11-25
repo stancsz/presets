@@ -1,5 +1,6 @@
 #pragma once
 #include "../AudioEffect.h"
+#include <string>
 
 class FilterEffect : public AudioEffect
 {
