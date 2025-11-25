@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <atomic>
+#include <string>
 
 class EffectChain
 {

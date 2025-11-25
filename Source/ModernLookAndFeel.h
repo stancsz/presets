@@ -1,5 +1,6 @@
 #pragma once
 #include <JuceHeader.h>
+#include <cmath>
 
 class ModernLookAndFeel : public juce::LookAndFeel_V4
 {

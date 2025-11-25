@@ -1,5 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <cmath>
+#include <algorithm>
 
 //==============================================================================
 // Component to render a single parameter
