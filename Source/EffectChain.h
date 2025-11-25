@@ -33,8 +33,12 @@ public:
     // Helper to create effect by type name
     static std::unique_ptr<AudioEffect> createEffect(const std::string& type);
 
-private:
+    juce::ValueTree getCurrentConfig() const { return currentConfig; }
+
+    // Internal node type - public so it can be used in implementation details in .cpp
     struct Node;
+
+private:
     using NodePtr = std::unique_ptr<Node>;
 
     // Simple double buffering approach for thread safety without locking audio thread
@@ -45,8 +49,5 @@ private:
     // Lock only for updating the config (write side), not for reading in process
     juce::CriticalSection updateLock;
 
-    juce::ValueTree getCurrentConfig() const { return currentConfig; }
-
-private:
     juce::ValueTree currentConfig;
 };

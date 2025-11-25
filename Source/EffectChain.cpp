@@ -13,22 +13,27 @@
 #include "Effects/PannerEffect.h"
 #include <yaml-cpp/yaml.h>
 
+// Define the Node struct declared in header
+struct EffectChain::Node
+{
+    virtual ~Node() = default;
+    virtual void prepare(const juce::dsp::ProcessSpec& spec) = 0;
+    virtual void process(juce::AudioBuffer<float>& buffer) = 0;
+    virtual void reset() = 0;
+};
+
 // ============================
 // Internal Node Graph Types
 // ============================
 
 namespace {
-    struct Node
-    {
-        virtual ~Node() = default;
-        virtual void prepare(const juce::dsp::ProcessSpec& spec) = 0;
-        virtual void process(juce::AudioBuffer<float>& buffer) = 0;
-        virtual void reset() = 0;
-    };
 
-    using NodePtr = std::unique_ptr<Node>;
+    // Note: Removed 'struct Node' definition from here as it conflicted with EffectChain::Node
+    // We will use EffectChain::Node as the base class.
 
-    struct EffectNode : public Node
+    using NodePtr = std::unique_ptr<EffectChain::Node>;
+
+    struct EffectNode : public EffectChain::Node
     {
         explicit EffectNode(std::unique_ptr<AudioEffect> e)
             : effect(std::move(e)) {}
@@ -58,7 +63,7 @@ namespace {
         std::unique_ptr<AudioEffect> effect;
     };
 
-    struct GroupNode : public Node
+    struct GroupNode : public EffectChain::Node
     {
         enum class Mode { Series, Parallel };
 
@@ -97,7 +102,9 @@ namespace {
 
             for (auto& child : children)
             {
-                tempBuffer.makeCopyOf(buffer, true, 0, numSamples);
+                for (int ch = 0; ch < numChannels; ++ch)
+                    tempBuffer.copyFrom(ch, 0, buffer, ch, 0, numSamples);
+
                 child->process(tempBuffer);
 
                 for (int ch = 0; ch < numChannels; ++ch)
@@ -112,7 +119,9 @@ namespace {
             {
                 for (auto& child : children)
                 {
-                    tempBuffer.makeCopyOf(buffer, true, 0, numSamples);
+                    for (int ch = 0; ch < numChannels; ++ch)
+                        tempBuffer.copyFrom(ch, 0, buffer, ch, 0, numSamples);
+
                     child->process(tempBuffer);
 
                     for (int ch = 0; ch < numChannels; ++ch)
@@ -145,7 +154,7 @@ namespace {
         
         if (node.IsScalar())
         {
-            tree.setProperty("value", node.as<std::string>(), nullptr);
+            tree.setProperty("value", juce::String(node.as<std::string>()), nullptr);
         }
         else if (node.IsSequence())
         {
@@ -158,7 +167,7 @@ namespace {
         {
             for (auto it = node.begin(); it != node.end(); ++it)
             {
-                auto key = it->first.as<std::string>();
+                auto key = juce::String(it->first.as<std::string>());
                 const auto& val = it->second;
                 
                 if (val.IsScalar())
@@ -170,7 +179,7 @@ namespace {
                     }
                     catch (...)
                     {
-                        tree.setProperty(key, val.as<std::string>(), nullptr);
+                        tree.setProperty(key, juce::String(val.as<std::string>()), nullptr);
                     }
                 }
                 else
