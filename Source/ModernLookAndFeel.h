@@ -53,43 +53,32 @@ public:
         }
     }
 
-    void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height, float sliderPos,
-                          const float rotaryStartAngle, const float rotaryEndAngle, juce::Slider& slider) override
+    void drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height,
+                           float sliderPos, const float rotaryStartAngle,
+                           const float rotaryEndAngle, juce::Slider&) override
     {
-        auto radius = (float)juce::jmin(width / 2, height / 2) - 4.0f;
-        auto centreX = (float)x + (float)width  * 0.5f;
-        auto centreY = (float)y + (float)height * 0.5f;
-        auto rx = centreX - radius;
-        auto ry = centreY - radius;
+        // 1. Calculate geometry
+        auto radius = (float) juce::jmin (width / 2, height / 2) - 4.0f;
+        auto center = juce::Point<float> ((float) x + (float) width * 0.5f, (float) y + (float) height * 0.5f);
+        auto rx = center.x - radius;
+        auto ry = center.y - radius;
         auto rw = radius * 2.0f;
         auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
 
-        // Background Track (Dark ring)
-        g.setColour(slider.findColour(juce::Slider::rotarySliderOutlineColourId));
-        juce::Path backgroundArc;
-        backgroundArc.addCentredArc(centreX, centreY, radius, radius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
-        g.strokePath(backgroundArc, juce::PathStrokeType(4.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        // 2. Draw Background (Dark Track)
+        g.setColour (juce::Colours::darkgrey);
+        g.drawEllipse (rx, ry, rw, rw, 2.0f);
 
-        // Value Track (Cyan arc)
-        g.setColour(slider.findColour(juce::Slider::rotarySliderFillColourId));
-        juce::Path valueArc;
-        valueArc.addCentredArc(centreX, centreY, radius, radius, 0.0f, rotaryStartAngle, angle, true);
-        g.strokePath(valueArc, juce::PathStrokeType(4.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-
-        // Indicator (Small line or dot on the ring)
+        // 3. Draw Active Arc (Cyan Progress)
         juce::Path p;
-        auto pointerLength = radius * 0.33f;
-        auto pointerThickness = 2.0f;
-        p.addRectangle(-pointerThickness * 0.5f, -radius, pointerThickness, pointerLength);
-        p.applyTransform(juce::AffineTransform::rotation(angle).translated(centreX, centreY));
+        p.addCentredArc (center.x, center.y, radius, radius, 0.0f, rotaryStartAngle, angle, true);
+        g.setColour (juce::Colour::fromString("FF00E5FF")); // Cyan
+        g.strokePath (p, juce::PathStrokeType (2.0f));
 
-        // Or simple dot at the end
-        /*
-        float dotRadius = 3.0f;
-        float dotX = centreX + std::sin(angle) * radius;
-        float dotY = centreY - std::cos(angle) * radius; // JUCE coordinate system might need check, but AffineTransform handles it usually.
-        // Actually simple line is cleaner for "Modern" look.
-        */
+        // 4. Draw Needle/Indicator (Visual Feedback)
+        juce::Path needle;
+        needle.addRectangle(-2.0f, -radius, 4.0f, 10.0f);
+        g.fillPath(needle, juce::AffineTransform::rotation(angle).translated(center));
     }
 
     void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
@@ -134,5 +123,85 @@ public:
             g.setColour(juce::Colours::white);
             g.fillRoundedRectangle(sliderPos - thumbW * 0.5f, (float)y + (float)height * 0.5f - thumbH * 0.5f, thumbW, thumbH, 2.0f);
         }
+    }
+    void drawComboBox (juce::Graphics& g, int width, int height, bool isButtonDown,
+                       int buttonX, int buttonY, int buttonW, int buttonH,
+                       juce::ComboBox& box) override
+    {
+        auto cornerSize = 4.0f;
+        juce::Rectangle<float> boxBounds (0.0f, 0.0f, (float) width, (float) height);
+
+        // 1. Flat Dark Background
+        g.setColour (juce::Colour::fromString("FF1E1E1E"));
+        g.fillRoundedRectangle (boxBounds, cornerSize);
+
+        // 2. Minimal Border
+        g.setColour (juce::Colours::white.withAlpha(0.2f));
+        g.drawRoundedRectangle (boxBounds, cornerSize, 1.0f);
+
+        // 3. Custom Arrow (Chevron)
+        juce::Path arrow;
+        auto arrowSize = 5.0f;
+        auto arrowCenter = juce::Point<float> ((float) (width - 15), height * 0.5f);
+        
+        // Simple V shape
+        arrow.startNewSubPath (arrowCenter.x - arrowSize, arrowCenter.y - arrowSize * 0.5f);
+        arrow.lineTo (arrowCenter.x, arrowCenter.y + arrowSize * 0.5f);
+        arrow.lineTo (arrowCenter.x + arrowSize, arrowCenter.y - arrowSize * 0.5f);
+
+        g.setColour (juce::Colours::lightgrey);
+        g.strokePath (arrow, juce::PathStrokeType (1.5f));
+    }
+
+    void drawPopupMenuItem (juce::Graphics& g, const juce::Rectangle<int>& area,
+                            const bool isSeparator, const bool isActive,
+                            const bool isHighlighted, const bool isTicked,
+                            const bool hasSubMenu, const juce::String& text,
+                            const juce::String& shortcutKeyText,
+                            const juce::Drawable* icon, const juce::Colour* textColour) override
+    {
+        if (isSeparator)
+        {
+            g.setColour (juce::Colours::white.withAlpha (0.1f));
+            g.fillRect (area.reduced (5, 0).removeFromTop (1));
+            return;
+        }
+
+        auto r = area.toFloat();
+        
+        // 1. Background Coloring
+        if (isHighlighted)
+        {
+            // Hover state
+            g.setColour (juce::Colour::fromString("FF252525")); 
+            g.fillRect (r);
+        }
+        else if (isTicked) 
+        {
+            // Selected state (Active Item) - Subtle distinction
+            g.setColour (juce::Colour::fromString("FF1E1E1E")); 
+            g.fillRect (r);
+        }
+        else 
+        {
+            // Default Background
+            g.setColour (juce::Colour::fromString("FF121212"));
+            g.fillRect (r);
+        }
+
+        // 2. Selection Indicator (The "Designer" replacement for the checkmark)
+        if (isTicked)
+        {
+            g.setColour (juce::Colour::fromString("FF00E5FF")); // Cyan Accent
+            // Draw a thin vertical strip on the left instead of a checkmark
+            g.fillRect (r.removeFromLeft(4.0f)); 
+        }
+
+        // 3. Text
+        g.setColour (isHighlighted ? juce::Colours::white : juce::Colours::lightgrey);
+        g.setFont (getPopupMenuFont());
+        
+        // Left-align text with padding to account for the accent strip
+        g.drawText (text, r.reduced (10, 0), juce::Justification::centredLeft, true);
     }
 };

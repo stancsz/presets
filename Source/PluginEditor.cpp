@@ -85,6 +85,19 @@ public:
             }
 
             s->setRange(min, max);
+            
+            // 2. The Interaction Link: Value Formatting
+            s->textFromValueFunction = [name](double value) {
+                juce::String suffix = "";
+                if (name.containsIgnoreCase("db") || name.containsIgnoreCase("gain") || name.containsIgnoreCase("threshold")) suffix = " dB";
+                else if (name.containsIgnoreCase("hz") || name.containsIgnoreCase("freq")) suffix = " Hz";
+                else if (name.containsIgnoreCase("ms") || name.containsIgnoreCase("time")) suffix = " ms";
+                else if (name.containsIgnoreCase("ratio")) suffix = ":1";
+                else if (name.containsIgnoreCase("percent") || name.containsIgnoreCase("mix") || name.containsIgnoreCase("dry") || name.containsIgnoreCase("wet")) suffix = " %";
+                
+                return juce::String(value, 1) + suffix;
+            };
+            
             s->setValue(val, juce::dontSendNotification);
         }
         else if (uiType.equalsIgnoreCase("Button") || uiType.equalsIgnoreCase("ToggleButton"))
@@ -174,7 +187,15 @@ public:
         }
         if (component)
         {
-            component->setBounds(area.reduced(2));
+            // Fix: Increase width for ComboBox to avoid truncation
+            if (dynamic_cast<juce::ComboBox*>(component.get()))
+            {
+                component->setBounds(area.reduced(2).withWidth(std::max(area.getWidth(), 90)));
+            }
+            else
+            {
+                component->setBounds(area.reduced(2));
+            }
         }
     }
 
@@ -284,12 +305,13 @@ public:
         // Content
         juce::FlexBox flex;
         flex.flexWrap = juce::FlexBox::Wrap::wrap;
-        flex.justifyContent = juce::FlexBox::JustifyContent::flexStart;
+        flex.justifyContent = juce::FlexBox::JustifyContent::flexStart; // Or spaceBetween if we want them spread out
         flex.alignContent = juce::FlexBox::AlignContent::flexStart;
 
         for (auto* p : params)
         {
-            flex.items.add(juce::FlexItem(*p).withWidth(70.0f).withHeight(80.0f).withMargin(5.0f));
+            // 3. The Layout Link: FlexBox vs setBounds
+            flex.items.add(juce::FlexItem(*p).withWidth(70.0f).withHeight(80.0f).withMargin(juce::FlexItem::Margin(5.0f)));
         }
 
         flex.performLayout(area);
