@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(PresetEngine VERSION 0.0.1)
+project(PresetEngine VERSION 0.1.0)
 
 include(FetchContent)
 
@@ -27,7 +27,7 @@ FetchContent_MakeAvailable(JUCE yaml-cpp)
 # Note: Building this requires X11 development headers (e.g. libxrandr-dev, libxinerama-dev, etc.) on Linux.
 
 juce_add_plugin(PresetEngine
-    COMPANY_NAME "Nap-Tech"
+    COMPANY_NAME "Stancsz Audio"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
@@ -141,10 +141,12 @@ target_compile_definitions(ScreenshotTest PUBLIC
     NOMINMAX
     WIN32_LEAN_AND_MEAN
     JucePlugin_Name="Preset Engine"
-    JucePlugin_VersionString="0.0.1"
+    JucePlugin_VersionString="0.1.0"
     JucePlugin_WantsMidiInput=0
     JucePlugin_ProducesMidiOutput=0
     JucePlugin_IsMidiEffect=0
     JucePlugin_IsSynth=0
     JucePlugin_EditorRequiresKeyboardFocus=1
 )
+
+juce_generate_juce_header(ScreenshotTest)
