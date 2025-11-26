@@ -18,6 +18,24 @@ public:
         // Create the plugin
         auto plugin = std::make_unique<PresetEngineAudioProcessor>();
         
+        // Load "Complex Group" YAML
+        juce::String complexGroupYaml = 
+            "# Parallel Processing with a Loop\n"
+            "- type: Group\n"
+            "  mode: Parallel\n"
+            "  children:\n"
+            "    - type: Filter\n"
+            "      mode: LowPass\n"
+            "      frequency: 400.0\n"
+            "    - type: Group\n"
+            "      mode: Series\n"
+            "      repeat: 3\n"
+            "      children:\n"
+            "        - type: Distortion\n"
+            "          drive: 2.0";
+            
+        plugin->loadConfig(complexGroupYaml);
+
         // Create the editor
         auto* editor = plugin->createEditor();
         

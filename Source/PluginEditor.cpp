@@ -1,7 +1,10 @@
+
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include <cmath>
 #include <algorithm>
+#include <vector>
+#include <memory>
 
 //==============================================================================
 // Component to render a single parameter
@@ -208,15 +211,16 @@ private:
 
 //==============================================================================
 // Component to render a group of parameters for one Effect
+// Component to render a group of parameters for one Effect
+// Component to render a group of parameters for one Effect
+// Component to render a group of parameters for one Effect
 class DynamicEffectComponent : public juce::Component
 {
 public:
     DynamicEffectComponent(const juce::ValueTree& effectTree)
     {
-        // Title (We can make this invisible or very subtle for minimalism)
+        // Title
         juce::String type = effectTree.getProperty("type").toString();
-        // group.setText(type); // Don't show group text frame, just a label maybe?
-        // Actually let's just use the FlexBox to flow items. Maybe add a Label for the block name.
 
         effectNameLabel.setText(type.toUpperCase(), juce::dontSendNotification);
         effectNameLabel.setFont(juce::Font(14.0f, juce::Font::bold));
@@ -260,6 +264,10 @@ public:
                     options.add("HP12"); options.add("HP24");
                     options.add("BP12"); options.add("BP24");
                 }
+                else if (type.equalsIgnoreCase("Group"))
+                {
+                    options.add("Series"); options.add("Parallel");
+                }
                 
                 for (const auto& opt : options)
                 {
@@ -274,9 +282,11 @@ public:
             addAndMakeVisible(comp);
         }
 
-        // 2. Children (Complex params)
+        // 2. Children (Complex params only, skip nested effects)
         for (const auto& child : effectTree)
         {
+            if (child.hasProperty("type")) continue; // Skip nested effects
+
             auto name = child.getType().toString();
             auto* comp = new DynamicParameterComponent(name, child);
             params.add(comp);
@@ -284,20 +294,28 @@ public:
         }
     }
 
+    void setIndent(int level) { indentLevel = level; }
+
     void paint(juce::Graphics& g) override
     {
+        auto bounds = getLocalBounds().toFloat().reduced(2);
+        int indentPx = indentLevel * 20;
+        bounds.removeFromLeft((float)indentPx);
+
         // Background for the effect block
         g.setColour(juce::Colour(0xff2a2a2a));
-        g.fillRoundedRectangle(getLocalBounds().toFloat().reduced(2), 6.0f);
+        g.fillRoundedRectangle(bounds, 6.0f);
         
         // Border
         g.setColour(juce::Colour(0xff3a3a3a));
-        g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(2), 6.0f, 1.0f);
+        g.drawRoundedRectangle(bounds, 6.0f, 1.0f);
     }
 
     void resized() override
     {
         auto area = getLocalBounds().reduced(5); // Padding inside the block
+        int indentPx = indentLevel * 20;
+        area.removeFromLeft(indentPx);
         
         // Header
         effectNameLabel.setBounds(area.removeFromTop(25).reduced(5, 0));
@@ -320,6 +338,7 @@ public:
 private:
     juce::Label effectNameLabel;
     juce::OwnedArray<DynamicParameterComponent> params;
+    int indentLevel = 0;
 };
 
 //==============================================================================
@@ -611,7 +630,29 @@ void PresetEngineAudioProcessorEditor::rebuildUi()
 
     auto tree = audioProcessor.getCurrentConfigTree();
     
-    // Layout logic: Stack effects vertically
+    // Recursive helper to flatten the tree with indentation
+    std::function<void(const juce::ValueTree&, int)> addEffects;
+    addEffects = [&](const juce::ValueTree& parent, int level)
+    {
+        for (const auto& child : parent)
+        {
+            // Check if it is an effect (has type)
+            if (child.hasProperty("type"))
+            {
+                auto* comp = new DynamicEffectComponent(child);
+                comp->setIndent(level);
+                effectComponents.add(comp);
+                container->addAndMakeVisible(comp);
+                
+                // Recurse for children
+                addEffects(child, level + 1);
+            }
+        }
+    };
+
+    // Start recursion from root
+    addEffects(tree, 0);
+    
     // Layout logic: Stack effects vertically
     int y = 0;
     const int effectHeight = 110;
@@ -620,12 +661,8 @@ void PresetEngineAudioProcessorEditor::rebuildUi()
     if (w <= 0) w = viewport.getWidth() - 20; // Fallback to viewport width
     if (w <= 0) w = 400; // Fallback to default
 
-    for (const auto& child : tree)
+    for (auto* comp : effectComponents)
     {
-        auto* comp = new DynamicEffectComponent(child);
-        effectComponents.add(comp);
-        container->addAndMakeVisible(comp);
-        
         comp->setBounds(0, y, w, effectHeight);
         y += effectHeight + 5;
     }
